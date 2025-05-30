@@ -33,7 +33,7 @@ rm -rf $TEMP_DIR
 export JAVA_HOME="$HOME/jdk/jdk-21.0.1+12"
 export PATH="$JAVA_HOME/bin:$PATH"
 
-/data/guptadk/anaconda3/envs/biogen2025/bin/python -m pyserini.index.lucene \
+python -m pyserini.index.lucene \
        --collection JsonCollection \
        --input $TARGET_DIR \
        --index ../data/indexes/pubmed_baseline_collection_jsonl \
