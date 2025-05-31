@@ -1,8 +1,7 @@
-from transformers import AutoTokenizer, AutoModelForSeq2SeqLM
-from transformers import TextClassificationPipeline, AutoModel, AutoTokenizer, AutoModelForSequenceClassification
+from transformers import AutoModelForSeq2SeqLM
+from transformers import  AutoTokenizer
 
 from pyserini.search.lucene import LuceneSearcher
-from transformers import pipeline
 import json
 from tqdm.auto import tqdm
 from util import save_json, load_json

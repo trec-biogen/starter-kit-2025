@@ -1,12 +1,10 @@
 import torch
 from peft import AutoPeftModelForCausalLM
-
 from transformers import AutoTokenizer, AutoModelForSequenceClassification, AutoModelForCausalLM
 from pyserini.search.lucene import LuceneSearcher
 from util import save_json, load_json
 import re, json, random
 import numpy as np
-from typing import List, Dict
 from tqdm.auto import tqdm
 
 
@@ -108,13 +106,9 @@ def generate_answer(query: str, reranker_model, reranker_tokenizer, llama_model,
 def parse_response_with_citations(answer_text, citation_map):
 
     answer_text = re.sub(r'[–—]', '-', answer_text)
-
     citation_pattern = re.compile(r'\[(\s*\d+(?:\s*[-,]\s*\d+)*\s*)\]')
-
     citation_matches = list(citation_pattern.finditer(answer_text))
-
     sentence_spans = list(re.finditer(r'.+?[.!?](?=\s|$)', answer_text))
-
     responses = []
 
     for span in sentence_spans:
@@ -122,7 +116,6 @@ def parse_response_with_citations(answer_text, citation_map):
         sentence_start, sentence_end = span.start(), span.end()
 
         pmids = set()
-
         for match in citation_matches:
             if sentence_start <= match.start() < sentence_end:
                 citation_text = match.group(1)
@@ -136,11 +129,11 @@ def parse_response_with_citations(answer_text, citation_map):
                             start, end = int(range_parts[0]), int(range_parts[1])
                             for i in range(start, end + 1):
                                 if 1 <= i <= len(citation_map):
-                                    pmids.add(str(citation_map[i]))
+                                    pmids.add(citation_map[i])
                     elif part.isdigit():
                         i = int(part)
                         if 1 <= i <= len(citation_map):
-                            pmids.add(str(citation_map[i]))
+                            pmids.add(citation_map[i])
 
         cleaned_sentence = citation_pattern.sub('', sentence).strip()
         if cleaned_sentence:
@@ -190,9 +183,7 @@ def generate_all_answers(
             },
             "responses": responses
         })
-
-    with open(output_json_path, 'w') as f:
-        json.dump(results, f, indent=4)
+    save_json(results, output_json_path)
     print(f"Results saved to {output_json_path}")
 
 

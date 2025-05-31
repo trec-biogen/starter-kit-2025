@@ -4,8 +4,9 @@
 Please install [Anaconda](https://www.anaconda.com/distribution/) to create a conda environment as follows:
 ```shell script
 # preparing environment
-conda env create -f environment.yml
+conda create -n biogen2025 python=3.10
 conda activate biogen2025
+pip install -r requirements.txt
 ```
 
 
