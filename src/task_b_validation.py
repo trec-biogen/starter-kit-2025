@@ -7,27 +7,27 @@ from colorama import Fore, Style, init
 
 # Initialize colorama
 init(autoreset=True)
+ERROR_RETURN_CODE=255
+def setup_logger(log_file='run.errlog', log_level=logging.INFO):
+    logger = logging.getLogger()
+    logger.setLevel(log_level)
+    if logger.hasHandlers():
+        logger.handlers.clear()
 
+    formatter = logging.Formatter(
+        fmt='%(asctime)s | %(levelname)-8s | %(message)s',
+        datefmt='%Y-%m-%d %H:%M:%S'
+    )
 
-class ColorFormatter(logging.Formatter):
-    def format(self, record):
-        level_color = {
-            'INFO': Fore.GREEN,
-            'WARNING': Fore.YELLOW,
-            'ERROR': Fore.RED,
-            'DEBUG': Fore.CYAN
-        }.get(record.levelname, '')
+    file_handler = logging.FileHandler(log_file, mode='w', encoding='utf-8')
+    file_handler.setFormatter(formatter)
+    logger.addHandler(file_handler)
 
-        message = super().format(record)
-        return f"{level_color}{message}{Style.RESET_ALL}"
+    console_handler = logging.StreamHandler(sys.stdout)
+    console_handler.setFormatter(formatter)
+    logger.addHandler(console_handler)
+    return logger
 
-
-handler = logging.StreamHandler()
-formatter = ColorFormatter('%(levelname)s: %(message)s')
-handler.setFormatter(formatter)
-logger = logging.getLogger()
-logger.setLevel(logging.INFO)
-logger.handlers = [handler]
 
 
 def validate_entry(entry, index):
@@ -108,7 +108,8 @@ def validate_entry(entry, index):
 
 def load_json_or_jsonl(file_path):
     if not os.path.isfile(file_path):
-        raise FileNotFoundError(f"File not found: {file_path}")
+        logger.error(Fore.RED + f"Error: '{file_path}' is not a valid file.")
+        sys.exit(ERROR_RETURN_CODE)
     with open(file_path, 'r', encoding='utf-8') as f:
         first_line = f.readline().strip()
         second_line = f.readline().strip()
@@ -127,14 +128,16 @@ def load_json_or_jsonl(file_path):
                 try:
                     result.append(json.loads(line))
                 except json.JSONDecodeError as e:
-                    raise ValueError(f"Invalid JSONL at line {i}: {str(e)}")
+                    logger.error(Fore.RED + f"Invalid JSONL format: {e}")
+                    sys.exit(ERROR_RETURN_CODE)
+
             return result
         else:
             try:
                 return json.load(f)
             except json.JSONDecodeError as e:
-                raise ValueError(f"Invalid JSON file: {str(e)}")
-
+                logger.error(Fore.RED + f"Invalid JSON format: {e}")
+                sys.exit(ERROR_RETURN_CODE)
 
 
 def validate_run_file(filename, topic_size=30, topic_id_start=181):
@@ -143,13 +146,13 @@ def validate_run_file(filename, topic_size=30, topic_id_start=181):
         data = load_json_or_jsonl(filename)
 
         if not isinstance(data, list):
-            logger.error("Top-level JSON must be a list.")
-            return
+            logger.error(Fore.RED + "Top-level JSON must be a list.")
+            sys.exit(ERROR_RETURN_CODE)
 
         if len(data) != topic_size:
-            logger.error("Mismatch in number of topics.")
-            logger.error(f"Expected topics: {topic_size}, Found: {len(data)}")
-            return
+            logger.error(Fore.RED + "Mismatch in number of topics.")
+            logger.error(Fore.RED + f"Expected topics: {topic_size}, Found: {len(data)}")
+            sys.exit(ERROR_RETURN_CODE)
 
         all_errors = []
         all_warnings = []
@@ -177,35 +180,41 @@ def validate_run_file(filename, topic_size=30, topic_id_start=181):
 
         if invalid_topic_ids:
             for idx, bad_id in invalid_topic_ids:
-                logger.error(f"[Entry {idx+1}] Invalid or missing topic_id: {bad_id}")
-                return
+                logger.error(Fore.RED + f"[Entry {idx+1}] Invalid or missing topic_id: {bad_id}")
+                sys.exit(ERROR_RETURN_CODE)
         if missing_ids:
-            logger.error(f"Missing topic_ids: {sorted(missing_ids)}")
-            return
+            logger.error(Fore.RED + f"Missing topic_ids: {sorted(missing_ids)}")
+            sys.exit(ERROR_RETURN_CODE)
         if all_errors:
-            logger.error("Validation failed with the following issues:")
+            logger.error(Fore.RED + "Validation failed with the following issues:")
             for err in all_errors:
-                logger.error(err)
-            return
+                logger.error(Fore.RED + err)
+            sys.exit(ERROR_RETURN_CODE)
         if all_warnings:
-            logger.warning("Validation warnings:")
+            logger.warning(Fore.YELLOW + "Validation warnings:")
             for warns in all_warnings:
-                logger.warning(warns)
+                logger.warning(Fore.YELLOW + warns)
 
         elif not missing_ids and not invalid_topic_ids:
-            logger.info("Success: Run file validated successfully.")
+            logger.info(Fore.GREEN +"Success: Run file validated successfully.")
+            sys.exit(0)
 
     except json.JSONDecodeError as e:
-        logger.error(f"JSON parsing error: {e}")
+        logger.error(Fore.RED +f"JSON parsing error: {e}")
+        sys.exit(ERROR_RETURN_CODE)
     except FileNotFoundError:
-        logger.error(f"File not found: {filename}")
+        logger.error(Fore.RED +f"File not found: {filename}")
+        sys.exit(ERROR_RETURN_CODE)
     except Exception as e:
-        logger.error(f"Unexpected error: {e}")
+        logger.error(Fore.RED +f"Unexpected error: {e}")
+        sys.exit(ERROR_RETURN_CODE)
 
 
 if __name__ == "__main__":
     if len(sys.argv) != 2:
         print(f"{Fore.YELLOW}Usage: python task_b_validation.py <path_to_run_file>{Style.RESET_ALL}")
     else:
+        logger = setup_logger(log_file=sys.argv[1] + '.errlog')
         validate_run_file(sys.argv[1])
+
 
