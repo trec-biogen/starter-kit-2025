@@ -58,5 +58,18 @@ The submission ready file will be saved in ```data``` directory. You need to cha
  python task_b.py
 ```
 
-The submission ready file will be saved in ```data``` directory. You need to change the metadata in the ```src/task_b.py``` to add your organization and run name.
+The submission-ready file will be saved in the data directory. You need to change the metadata in the ```src/task_b.py``` to add your organization and run name.
+
+## Task A Evaluation
+Use the following command to run both the retrieval and automatic evaluation pipelines:
+
+```bash
+python evaluate.py \
+  --submission path/to/task_a_output.json \
+  --judgement path/to/task-a-judgement.csv \
+  --labels path/to/TEST_labels.json
+
+Note
+
+Please contact us to obtain the judgment and automatic evaluation label files.
 
